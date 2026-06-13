@@ -38,23 +38,12 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ROUTE WEBSITE PELANGGAN
 app.get("/customer", (req, res) => {
-  res.redirect(301, "/customer/");
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "customer", "index.html"));
 });
 
 app.get("/customer/", (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.join(__dirname, "public", "customer", "index.html"));
-});
-
-app.get("/customer/index.html", (req, res) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.join(__dirname, "public", "customer", "index.html"));
-});
-
-// Alternatif jika suatu saat halaman customer diletakkan langsung di public/customer.html
-app.get("/customer.html", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.sendFile(path.join(__dirname, "public", "customer", "index.html"));
 });
@@ -66,18 +55,6 @@ app.get("/css/style.css", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "css", "style.css"));
 });
 
-app.get("/css/customer.css", (req, res) => {
-  res.type("text/css");
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.join(__dirname, "public", "css", "customer.css"));
-});
-
-app.get("/customer/customer.css", (req, res) => {
-  res.type("text/css");
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.join(__dirname, "public", "css", "customer.css"));
-});
-
 app.get("/js/app.js", (req, res) => {
   res.type("application/javascript");
   res.setHeader("Cache-Control", "no-store");
@@ -85,12 +62,6 @@ app.get("/js/app.js", (req, res) => {
 });
 
 app.get("/js/customer.js", (req, res) => {
-  res.type("application/javascript");
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.join(__dirname, "public", "js", "customer.js"));
-});
-
-app.get("/customer/customer.js", (req, res) => {
   res.type("application/javascript");
   res.setHeader("Cache-Control", "no-store");
   res.sendFile(path.join(__dirname, "public", "js", "customer.js"));
@@ -110,6 +81,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {});
   `);
 });
+
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS setting(id INTEGER PRIMARY KEY CHECK(id=1), nama_usaha TEXT, wa_admin TEXT, alamat TEXT);
@@ -455,12 +427,6 @@ td{padding:10px 11px;border-bottom:1px dashed #cbd5e1}.r{text-align:right}
 </html>
 `);
 });
-
-// 404 handler supaya error lebih jelas
-app.use((req, res) => {
-  res.status(404).send(`Halaman tidak ditemukan: ${req.originalUrl}`);
-});
-
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`AlteRentCar jalan di http://localhost:${PORT}`);
