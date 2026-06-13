@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AlteRentCar Admin Pro</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="loginPage" class="login">
+  <div class="login-card">
+    <div class="login-logo">AR</div>
+    <h1>AlteRentCar</h1>
+    <p>Professional Rental Management</p>
+    <input id="user" value="admin" placeholder="Username">
+    <input id="pass" type="password" value="admin123" placeholder="Password">
+    <button onclick="login()">Login Admin</button>
+    <a href="/customer/" target="_blank">Buka Website Pelanggan</a>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside>
+    <div class="brand">
+      <div class="brand-logo">AR</div>
+      <div>
+        <h2>AlteRentCar</h2>
+        <span>Rental Management Pro</span>
+      </div>
+    </div>
+    <button onclick="page('dashboard',this)" class="active">Dashboard</button>
+    <button onclick="page('mulaiSewa',this)">Mulai Sewa</button>
+    <button onclick="page('laporan',this)">Laporan Sewa</button>
+    <button onclick="page('armada',this)">Armada</button>
+    <button onclick="page('customerPage',this)">Customer</button>
+    <button onclick="page('sopir',this)">Sopir</button>
+    <button onclick="page('pengeluaran',this)">Pengeluaran</button>
+    <button onclick="page('rekapPage',this)">Rekapan Bulanan</button>
+    <button onclick="page('piutangPage',this)">Piutang</button>
+    <button onclick="page('setting',this)">Setting</button>
+    <a href="/customer/" target="_blank">Website Pelanggan</a>
+    <button onclick="logout()" class="logout-btn">Logout</button>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <h1 id="title">Dashboard</h1>
+        <p>Sistem rental mobil profesional untuk operasional AlteRentCar.</p>
+      </div>
+      <div class="top-actions">
+        <input type="month" id="bulan" onchange="loadAll()">
+        <button onclick="loadAll()">Refresh</button>
+      </div>
+    </header>
+
+    <section id="dashboard" class="page">
+      <div class="kpi-grid">
+        <div class="kpi blue"><span>Total Sewa</span><b id="jumlah">0</b><small>Semua transaksi</small></div>
+        <div class="kpi green"><span>Omzet</span><b id="omzet">Rp 0</b><small>Total nilai rental</small></div>
+        <div class="kpi cyan"><span>Uang Masuk</span><b id="masuk">Rp 0</b><small>Pembayaran diterima</small></div>
+        <div class="kpi orange"><span>Piutang</span><b id="piutang">Rp 0</b><small>Belum dibayar</small></div>
+        <div class="kpi red"><span>Pengeluaran</span><b id="keluar">Rp 0</b><small>Operasional</small></div>
+        <div class="kpi purple"><span>Booking Web</span><b id="bookingweb">0</b><small>Dari pelanggan</small></div>
+      </div>
+      <div class="dash-grid">
+        <div class="panel"><div class="panel-head"><h2>Rental Terbaru</h2><button onclick="page('laporan',document.querySelector('[onclick*=laporan]'))">Lihat Semua</button></div><div id="recentRentals" class="mini-list"></div></div>
+        <div class="panel"><h2>Ringkasan Piutang</h2><div id="miniPiutang" class="mini-list"></div></div>
+      </div>
+    </section>
+
+    <section id="mulaiSewa" class="page hidden">
+      <div class="panel">
+        <h2>Mulai Booking / Sewa</h2>
+        <div class="form-grid">
+          <select id="sewaCustomer"></select>
+          <select id="sewaArmada" onchange="isiHargaArmada()"></select>
+          <input type="date" id="tglMulai" onchange="previewTotal()">
+          <input type="date" id="tglSelesai" onchange="previewTotal()">
+          <input type="number" id="hargaHarian" placeholder="Harga harian" oninput="previewTotal()">
+          <input type="number" id="biayaSopir" placeholder="Biaya sopir" value="0" oninput="previewTotal()">
+          <input type="number" id="biayaBbm" placeholder="Biaya BBM" value="0" oninput="previewTotal()">
+          <input type="number" id="biayaTol" placeholder="Biaya tol / parkir" value="0" oninput="previewTotal()">
+          <input type="number" id="biayaLain" placeholder="Biaya lain-lain" value="0" oninput="previewTotal()">
+          <input type="number" id="diskon" placeholder="Diskon" value="0" oninput="previewTotal()">
+          <input type="number" id="dibayar" placeholder="DP / dibayar" value="0">
+          <select id="statusSewa"><option>Booking</option><option>Berjalan</option><option>Selesai</option></select>
+          <textarea id="catatanSewa" placeholder="Catatan"></textarea>
+        </div>
+        <div class="total-box"><span>Estimasi Total</span><b id="totalPreview">Rp 0</b></div>
+        <button class="wide-btn" onclick="simpanSewa()">Simpan Sewa</button>
+      </div>
+    </section>
+
+    <section id="laporan" class="page hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Laporan Sewa</h2>
+          <div class="toolbar">
+            <input id="searchSewa" oninput="renderSewa()" placeholder="Cari customer / kode / mobil...">
+            <select id="filterStatus" onchange="renderSewa()"><option value="">Semua Status</option><option>Booking</option><option>Berjalan</option><option>Selesai</option><option>Batal</option></select>
+            <a class="btn" href="/api/export/sewa" target="_blank">Export Excel</a>
+          </div>
+        </div>
+        <div id="rentalCards" class="rental-grid"></div>
+      </div>
+    </section>
+
+    <section id="armada" class="page hidden"><div class="panel"><h2>Data Armada</h2><div class="form-grid"><input id="aNama" placeholder="Nama mobil"><input id="aPlat" placeholder="Plat"><input id="aTipe" placeholder="Tipe"><input id="aTahun" placeholder="Tahun"><input id="aHarga" type="number" placeholder="Harga harian"><select id="aStatus"><option>Ready</option><option>Disewa</option><option>Service</option></select><input id="aDesk" placeholder="Deskripsi"></div><button onclick="addArmada()">Tambah Armada</button><div id="armadaCards" class="card-grid"></div></div></section>
+    <section id="customerPage" class="page hidden"><div class="panel"><h2>Data Customer</h2><form id="formCust" class="form-grid"><input name="nama" placeholder="Nama"><input name="no_hp" placeholder="No HP"><input name="alamat" placeholder="Alamat"><input name="no_identitas" placeholder="KTP/SIM"><input name="foto_ktp" type="file"></form><button onclick="addCustomer()">Tambah Customer</button><div id="customerCards" class="card-grid"></div></div></section>
+    <section id="sopir" class="page hidden"><div class="panel"><h2>Data Sopir</h2><div class="form-grid"><input id="sNama" placeholder="Nama sopir"><input id="sHp" placeholder="No HP"><select id="sStatus"><option>Aktif</option><option>Nonaktif</option></select></div><button onclick="addSopir()">Tambah Sopir</button><div id="sopirCards" class="card-grid"></div></div></section>
+    <section id="pengeluaran" class="page hidden"><div class="panel"><h2>Pengeluaran</h2><div class="form-grid"><input type="date" id="pTgl"><input id="pKat" placeholder="Kategori"><input id="pKet" placeholder="Keterangan"><input id="pNom" type="number" placeholder="Nominal"></div><button onclick="addPengeluaran()">Tambah Pengeluaran</button><div id="pengeluaranList" class="mini-list"></div></div></section>
+
+    <section id="rekapPage" class="page hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Rekapan Bulanan</h2>
+          <div class="toolbar">
+            <button onclick="loadAll()">Refresh Rekap</button>
+            <a class="btn" href="/api/export/sewa" target="_blank">Export Excel</a>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi blue"><span>Total Transaksi</span><b id="rekapJumlah">0</b><small>Jumlah transaksi bulan ini</small></div>
+          <div class="kpi green"><span>Total Omzet</span><b id="rekapOmzet">Rp 0</b><small>Total nilai sewa</small></div>
+          <div class="kpi cyan"><span>Uang Masuk</span><b id="rekapMasuk">Rp 0</b><small>Pembayaran diterima</small></div>
+          <div class="kpi orange"><span>Piutang</span><b id="rekapPiutang">Rp 0</b><small>Sisa belum dibayar</small></div>
+          <div class="kpi red"><span>Pengeluaran</span><b id="rekapKeluar">Rp 0</b><small>Total biaya operasional</small></div>
+          <div class="kpi purple"><span>Laba Bersih</span><b id="rekapLaba">Rp 0</b><small>Uang masuk - pengeluaran</small></div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="panel">
+            <h2>Rekap Per Customer</h2>
+            <div id="rekapCustomer" class="rental-grid"></div>
+          </div>
+          <div class="panel">
+            <h2>Rekap Status Sewa</h2>
+            <div id="rekapStatus" class="mini-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="piutangPage" class="page hidden"><div class="panel"><h2>Laporan Piutang Customer</h2><div id="piutangList" class="rental-grid"></div></div></section>
+    <section id="setting" class="page hidden"><div class="panel"><h2>Setting</h2><div class="form-grid"><input id="setNama" placeholder="Nama usaha"><input id="setWa" placeholder="WA admin 628xxx"><input id="setAlamat" placeholder="Alamat"></div><button onclick="saveSetting()">Simpan</button></div></section>
+  </main>
+</div>
+<script src="/js/app.js"></script>
+</body>
+</html>
