@@ -23,7 +23,64 @@ const upload = multer({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"), {
+  index: false,
+  setHeaders: (res, filePath) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+}));
+
+// ROUTE HALAMAN UTAMA - penting untuk Render supaya CSS/JS admin terbaca benar
+app.get("/", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/customer", (req, res) => {
+  res.redirect("/customer/");
+});
+
+app.get("/customer/", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "customer", "index.html"));
+});
+
+// Paksa file penting dikirim dengan MIME yang benar
+app.get("/css/style.css", (req, res) => {
+  res.type("text/css");
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "css", "style.css"));
+});
+
+app.get("/js/app.js", (req, res) => {
+  res.type("application/javascript");
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "js", "app.js"));
+});
+
+app.get("/js/customer.js", (req, res) => {
+  res.type("application/javascript");
+  res.setHeader("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "js", "customer.js"));
+});
+
+// Reset service worker lama agar browser tidak memakai cache PWA lama
+app.get("/sw.js", (req, res) => {
+  res.type("application/javascript");
+  res.setHeader("Cache-Control", "no-store");
+  res.send(`
+self.addEventListener('install', event => self.skipWaiting());
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))).then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', event => {});
+  `);
+});
+
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS setting(id INTEGER PRIMARY KEY CHECK(id=1), nama_usaha TEXT, wa_admin TEXT, alamat TEXT);
@@ -263,7 +320,7 @@ app.get("/api/export/sewa", (req, res) => {
   res.download(f);
 });
 
-/* INVOICE FINAL BERSIH - A5 LANDSCAPE */
+/* INVOICE A5 LANDSCAPE PROFESSIONAL */
 app.get("/invoice/:id", (req, res) => {
   const d = detail(req.params.id);
   const s = setting();
@@ -278,67 +335,47 @@ app.get("/invoice/:id", (req, res) => {
 <meta charset="UTF-8">
 <title>Invoice ${d.kode}</title>
 <style>
-@page{size:A5 landscape;margin:6mm}
+@page{size:A5 landscape;margin:7mm}
 *{box-sizing:border-box}
-body{margin:0;background:#e5e7eb;color:#0f172a;font-family:Segoe UI,Arial,sans-serif}
-.print{display:block;margin:10px auto;padding:9px 18px;border:0;border-radius:10px;background:#0f172a;color:white;font-weight:900;cursor:pointer}
-.invoice{width:1120px;margin:14px auto;background:white;border-radius:18px;overflow:hidden;box-shadow:0 14px 36px rgba(15,23,42,.20)}
-.header{height:140px;display:grid;grid-template-columns:1fr 1fr;background:#0f172a;color:white;position:relative;overflow:hidden}
-.header:after{content:"";position:absolute;left:520px;top:-8px;width:54px;height:160px;background:white;transform:skewX(-28deg);z-index:5}
-.brand{padding:26px 34px;display:flex;gap:18px;align-items:center;position:relative;z-index:2}
-.logo{width:70px;height:70px;border-radius:18px;background:linear-gradient(135deg,#22c55e,#0ea5e9);display:flex;align-items:center;justify-content:center;color:white;font-size:34px;font-weight:950}
-.brand h1{margin:0;font-size:40px;line-height:1;letter-spacing:-1px}
-.brand h1 span{color:#22c55e}
-.brand p{margin:8px 0 0;font-size:16px;color:#e2e8f0}
-.inv{padding:22px 34px;text-align:right;background:#0f172a;height:140px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;position:relative;z-index:1}
-.inv h2{margin:0;font-size:42px;line-height:1;letter-spacing:2px}
-.inv h3{margin:13px 0 0;font-size:22px}
-.inv p{margin:8px 0 0;font-size:18px}
-.content{padding:26px 28px 0;display:grid;grid-template-columns:520px 1fr;gap:22px;background:white}
-.left{display:flex;flex-direction:column;gap:13px}
-.info{min-height:106px;border:1px solid #dbe1ea;border-radius:14px;padding:14px 16px;background:white;display:grid;grid-template-columns:48px 1fr;gap:14px;align-items:center}
-.ico{width:42px;height:42px;border-radius:50%;background:#2563eb;color:white;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
-.info small{display:block;color:#2563eb;font-weight:950;font-size:13px;text-transform:uppercase}
-.info b{display:block;margin:7px 0 4px;font-size:18px}
-.info p{margin:0;color:#334155;font-size:15px}
-.sign-wrap{margin-top:4px;border:1.6px solid #2563eb;border-radius:14px;padding:14px;background:white;display:grid;grid-template-columns:1fr 1fr;text-align:center}
-.sign{min-height:120px;padding:0 18px;display:flex;flex-direction:column;justify-content:flex-end}
-.sign:first-child{border-right:1px dashed #cbd5e1}
-.sign-title{font-size:15px;margin-bottom:12px}
-.scribble{font-family:Georgia,serif;font-style:italic;color:#2563eb;font-size:30px;font-weight:950;height:38px;line-height:38px;margin-bottom:15px;white-space:nowrap}
-.sign-line{border-top:2px solid #111827;padding-top:7px;font-size:14px;font-weight:950}
-.rightside{display:flex;flex-direction:column;gap:16px}
-.tablebox{width:100%;border:1px solid #dbe1ea;border-radius:14px;overflow:hidden;background:white}
-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:15px}
-th{background:linear-gradient(135deg,#0f3fb3,#2563eb);color:white;text-align:left;padding:13px 16px;font-size:16px}
-th:first-child{width:72%}
-th:last-child{width:28%}
-td{padding:13px 16px;border-bottom:1px solid #dbe1ea;line-height:1.35;vertical-align:middle}
-.r{text-align:right;white-space:nowrap}
-.summary{width:100%;margin:0;border:1px solid #dbe1ea;border-radius:14px;padding:16px;background:#f8fafc}
-.row{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dbe1ea;padding:11px 0;font-size:19px}
-.row b{font-size:20px}
-.sisa{margin-top:14px;background:#16a34a;color:white;border-radius:11px;padding:15px 17px;display:flex;justify-content:space-between;align-items:center;font-size:24px;font-weight:950}
-.note{width:100%;border:1px dashed #cbd5e1;border-radius:14px;padding:16px;background:white;display:grid;grid-template-columns:42px 1fr;gap:13px;font-size:14px;line-height:1.45;color:#334155}
-.note .ico{width:38px;height:38px;font-size:22px}
-.foot{margin-top:22px;background:#0f172a;color:white;text-align:center;padding:14px;font-size:15px}
-@media print{body{background:white}.print{display:none}.invoice{width:100%;margin:0;box-shadow:none;border-radius:0}}
+body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#e5e7eb;color:#0f172a}
+.print{margin:10px auto;display:block;background:#0f172a;color:white;border:0;border-radius:9px;padding:9px 18px;font-weight:800;cursor:pointer}
+.invoice{width:800px;margin:14px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 14px 35px rgba(15,23,42,.2)}
+.head{height:118px;display:grid;grid-template-columns:1.05fr .95fr;background:#0f172a;color:white;position:relative}
+.head:after{content:"";position:absolute;left:382px;top:0;width:42px;height:118px;background:white;transform:skewX(-28deg)}
+.brand{padding:22px 28px;display:flex;gap:16px;align-items:center}
+.logo{width:58px;height:58px;border-radius:15px;background:linear-gradient(135deg,#22c55e,#0ea5e9);display:flex;align-items:center;justify-content:center;font-weight:950;font-size:28px}
+.brand h1{margin:0;font-size:32px}.brand h1 span{color:#22c55e}.brand p{margin:5px 0 0;color:#e2e8f0;font-size:14px}
+.inv{padding:20px 26px;text-align:right;background:linear-gradient(135deg,#0f3fb3,#2563eb)}
+.inv h2{margin:0;font-size:34px;letter-spacing:1px}.inv h3{margin:10px 0 0;font-size:17px}.inv p{margin:8px 0 0;font-size:15px}
+.content{padding:22px 26px 16px;display:grid;grid-template-columns:310px 1fr;gap:22px}
+.left{display:flex;flex-direction:column;gap:11px}
+.info{border:1px solid #dbe1ea;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center;background:#fff}
+.ico{width:36px;height:36px;border-radius:50%;background:#2563eb;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+.info small{display:block;color:#2563eb;font-weight:900;font-size:12px;text-transform:uppercase}
+.info b{display:block;margin:5px 0 2px;font-size:16px}.info p{margin:0;font-size:13px;color:#334155}
+.sign-wrap{margin-top:4px;display:grid;grid-template-columns:1fr 1fr;gap:16px;text-align:center;font-size:12px}
+.sign{min-height:105px}.sign .scribble{font-family:Georgia,serif;font-style:italic;color:#2563eb;font-size:24px;font-weight:900;margin-top:30px}
+.sign-line{margin-top:45px;border-top:2px solid #111827;padding-top:5px;font-weight:900}.admin-line{margin-top:10px}
+.tablebox{border:1px solid #dbe1ea;border-radius:12px;overflow:hidden;background:white}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:linear-gradient(135deg,#0f3fb3,#2563eb);color:white;text-align:left;padding:11px}
+td{padding:10px 11px;border-bottom:1px dashed #cbd5e1}.r{text-align:right}
+.summary{width:315px;margin:14px 0 0 auto;border:1px solid #dbe1ea;border-radius:12px;padding:12px;background:#f8fafc}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #dbe1ea;padding:8px 0;font-size:15px}
+.sisa{margin-top:10px;background:#16a34a;color:white;border-radius:10px;padding:11px 13px;display:flex;justify-content:space-between;font-size:20px;font-weight:950}
+.note{margin-top:14px;border:1px dashed #cbd5e1;border-radius:12px;padding:12px;display:grid;grid-template-columns:35px 1fr;gap:10px;font-size:12px;color:#334155}
+.foot{background:#0f172a;color:white;text-align:center;padding:12px;font-size:12px}
+@media print{body{background:white}.print{display:none}.invoice{margin:0;width:100%;box-shadow:none;border-radius:0}}
 </style>
 </head>
 <body>
 <button class="print" onclick="window.print()">Cetak / Simpan PDF</button>
-
 <div class="invoice">
-  <div class="header">
+  <div class="head">
     <div class="brand">
       <div class="logo">AR</div>
-      <div>
-        <h1>Alte<span>RentCar</span></h1>
-        <p>Premium Car Rental Service</p>
-        <p>${s.alamat || "Semarang, Jawa Tengah, Indonesia"}</p>
-      </div>
+      <div><h1>Alte<span>RentCar</span></h1><p>Rental Mobil Semarang</p><p>${s.alamat || "Semarang, Jawa Tengah, Indonesia"}</p></div>
     </div>
-
     <div class="inv">
       <h2>INVOICE</h2>
       <h3>${d.kode}</h3>
@@ -354,8 +391,8 @@ td{padding:13px 16px;border-bottom:1px solid #dbe1ea;line-height:1.35;vertical-a
       <div class="info"><div class="ico">📄</div><div><small>Status Pembayaran</small><b>${d.status_bayar || "Belum Bayar"}</b><p>Status Sewa: ${d.status_sewa || "-"}</p></div></div>
 
       <div class="sign-wrap">
-        <div class="sign"><div class="sign-title">Customer</div><div class="scribble">Ttd</div><div class="sign-line">${d.customer || "Customer"}</div></div>
-        <div class="sign"><div class="sign-title">Admin / AlteRentCar</div><div class="scribble">AlteRentCar</div><div class="sign-line">Admin Rental</div></div>
+        <div class="sign">Customer<div class="scribble">Ttd</div><div class="sign-line">${d.customer || "Customer"}</div></div>
+        <div class="sign">Admin / AlteRentCar<div class="scribble">AlteRentCar</div><div class="sign-line admin-line">Admin Rental</div></div>
       </div>
     </div>
 
@@ -383,13 +420,13 @@ td{padding:13px 16px;border-bottom:1px solid #dbe1ea;line-height:1.35;vertical-a
       <div class="note"><div class="ico">i</div><div><b>Catatan:</b><br>Invoice ini sah sebagai bukti transaksi rental mobil. Mohon lakukan pelunasan sesuai nominal sisa pembayaran.</div></div>
     </div>
   </div>
-
   <div class="foot">WhatsApp: ${s.wa_admin || "-"} &nbsp; | &nbsp; Terima kasih telah mempercayakan kebutuhan transportasi Anda kepada kami.</div>
 </div>
 </body>
 </html>
 `);
 });
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`AlteRentCar jalan di http://localhost:${PORT}`);
   console.log(`Website pelanggan: http://localhost:${PORT}/customer/`);
