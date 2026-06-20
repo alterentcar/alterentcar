@@ -144,9 +144,18 @@ function hari(a, b) {
 }
 
 function kode() {
-  let ym = today().slice(0, 7).replace("-", "");
-  let n = db.prepare("SELECT COUNT(*) t FROM sewa WHERE substr(tgl_booking,1,7)=?").get(today().slice(0, 7)).t + 1;
-  return "ALT-" + ym + "-" + String(n).padStart(4, "0");
+  const now = new Date();
+
+  const tahun = now.getFullYear();
+  const bulan = String(now.getMonth() + 1).padStart(2, "0");
+  const tanggal = String(now.getDate()).padStart(2, "0");
+
+  const jam = String(now.getHours()).padStart(2, "0");
+  const menit = String(now.getMinutes()).padStart(2, "0");
+  const detik = String(now.getSeconds()).padStart(2, "0");
+  const mili = String(now.getMilliseconds()).padStart(3, "0");
+
+  return `ALT-${tahun}${bulan}${tanggal}-${jam}${menit}${detik}${mili}`;
 }
 
 function statusBayar(total, dibayar) {
